@@ -4,6 +4,8 @@
 
 本项目受到polywock的[ask-screenshot](https://github.com/polywock/ask-screenshot)启发，主要面向中国大陆用户。
 
+分发工作正在进行中...
+
 ## 🚀 功能特性
 
 - 右键菜单快速截图（支持 Ask Qwen 和 Ask Deepseek）
