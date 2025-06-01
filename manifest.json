@@ -1,0 +1,39 @@
+{
+  "manifest_version": 2,
+  "name": "Ask Screenshot",
+  "version": "1.0",
+  "description": "右键截图并自动向大语言模型上传",
+  
+  "permissions": [
+    "contextMenus",
+    "activeTab",
+    "tabs",
+    "storage",
+    "<all_urls>",
+    "screenshots"
+  ],
+  
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+  
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_end"
+    }
+  ],
+  
+  "web_accessible_resources": [
+    "screenshot-selector.js",
+    "ai-inject.js"
+  ],
+  
+  "icons": {
+    "512": "icons/icon-512.png",
+    "256": "icons/icon-256.png",
+    "96": "icons/icon-96.png"
+  }
+}
