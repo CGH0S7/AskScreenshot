@@ -26,24 +26,27 @@
 
     function createFloatingNotification(platformName) {
         const notification = document.createElement("div");
-        notification.innerHTML = `
-      <div style="
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: #4CAF50;
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        z-index: 10000;
-        font-family: Arial, sans-serif;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        cursor: pointer;
-      ">
-        📸 Ask Screenshot: 截图已准备好，正在上传到 ${platformName}...
-      </div>
-    `;
 
+        const container = document.createElement("div");
+        container.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            z-index: 10000;
+            font-family: Arial, sans-serif;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            cursor: pointer;
+        `;
+
+        const text = document.createElement("span");
+        text.textContent = `📸 Ask Screenshot: 截图已准备好，正在上传到 ${platformName}...`;
+
+        container.appendChild(text);
+        notification.appendChild(container);
         document.body.appendChild(notification);
 
         // 5秒后自动消失
@@ -154,149 +157,201 @@
     function createTemporaryUploadArea(file, nearElement, aiPlatform) {
         const platformName = aiPlatform === "qwen" ? "Qwen" : "Deepseek";
         const uploadArea = document.createElement("div");
-        uploadArea.innerHTML = `
-      <div style="
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background: white;
-        border: 2px dashed #ccc;
-        padding: 20px;
-        border-radius: 8px;
-        z-index: 10000;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        max-width: 300px;
-      ">
-        <h3 style="margin: 0 0 10px 0; color: #333;">Ask Screenshot 截图</h3>
-        <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">
-          点击下方按钮上传截图到 ${platformName} 对话中
-        </p>
-        <button id="ai-upload-btn" style="
-          background: #4CAF50;
-          color: white;
-          border: none;
-          padding: 10px 20px;
-          border-radius: 4px;
-          cursor: pointer;
-          margin-right: 10px;
-        ">上传截图</button>
-        <button id="ai-cancel-btn" style="
-          background: #f44336;
-          color: white;
-          border: none;
-          padding: 10px 20px;
-          border-radius: 4px;
-          cursor: pointer;
-        ">取消</button>
-      </div>
-    `;
 
+        const container = document.createElement("div");
+        container.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            border: 2px dashed #ccc;
+            padding: 20px;
+            border-radius: 8px;
+            z-index: 10000;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            max-width: 300px;
+        `;
+
+        const title = document.createElement("h3");
+        title.style.cssText = "margin: 0 0 10px 0; color: #333;";
+        title.textContent = "Ask Screenshot 截图";
+
+        const description = document.createElement("p");
+        description.style.cssText =
+            "margin: 0 0 10px 0; color: #666; font-size: 14px;";
+        description.textContent = `点击下方按钮上传截图到 ${platformName} 对话中`;
+
+        const uploadBtn = document.createElement("button");
+        uploadBtn.id = "ai-upload-btn";
+        uploadBtn.style.cssText = `
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        `;
+        uploadBtn.textContent = "上传截图";
+
+        const cancelBtn = document.createElement("button");
+        cancelBtn.id = "ai-cancel-btn";
+        cancelBtn.style.cssText = `
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        `;
+        cancelBtn.textContent = "取消";
+
+        container.appendChild(title);
+        container.appendChild(description);
+        container.appendChild(uploadBtn);
+        container.appendChild(cancelBtn);
+        uploadArea.appendChild(container);
         document.body.appendChild(uploadArea);
 
         // 添加事件监听器
-        document
-            .getElementById("ai-upload-btn")
-            .addEventListener("click", () => {
-                // 创建一个隐藏的文件输入框
-                const hiddenInput = document.createElement("input");
-                hiddenInput.type = "file";
-                hiddenInput.style.display = "none";
+        uploadBtn.addEventListener("click", () => {
+            // 创建一个隐藏的文件输入框
+            const hiddenInput = document.createElement("input");
+            hiddenInput.type = "file";
+            hiddenInput.style.display = "none";
 
-                // 模拟文件选择
-                const dt = new DataTransfer();
-                dt.items.add(file);
-                hiddenInput.files = dt.files;
+            // 模拟文件选择
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            hiddenInput.files = dt.files;
 
-                document.body.appendChild(hiddenInput);
-                hiddenInput.click();
+            document.body.appendChild(hiddenInput);
+            hiddenInput.click();
 
-                uploadArea.remove();
-            });
+            uploadArea.remove();
+        });
 
-        document
-            .getElementById("ai-cancel-btn")
-            .addEventListener("click", () => {
-                uploadArea.remove();
-            });
+        cancelBtn.addEventListener("click", () => {
+            uploadArea.remove();
+        });
     }
 
     function showManualUploadPrompt(file, aiPlatform) {
         const platformName = aiPlatform === "qwen" ? "Qwen" : "Deepseek";
         const prompt = document.createElement("div");
-        prompt.innerHTML = `
-      <div style="
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: white;
-        border: 1px solid #ddd;
-        padding: 30px;
-        border-radius: 12px;
-        z-index: 10000;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-        max-width: 400px;
-        font-family: Arial, sans-serif;
-      ">
-        <h3 style="margin: 0 0 15px 0; color: #333; text-align: center;">
-          📸 手动上传到 ${platformName}
-        </h3>
-        <p style="margin: 0 0 20px 0; color: #666; line-height: 1.5;">
-          自动上传功能可能不兼容当前页面版本。请使用以下方式上传截图：
-        </p>
-        <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 15px 0;">
-          <p style="margin: 0 0 10px 0; font-weight: bold; color: #333;">方法1：下载后上传</p>
-          <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">
-            点击下载按钮保存截图，然后手动上传到聊天框
-          </p>
-          ${
-              file
-                  ? `<a id="download-screenshot" href="${URL.createObjectURL(
-                        file
-                    )}" download="screenshot.png" style="
-            background: #007bff;
-            color: white;
-            text-decoration: none;
-            padding: 8px 16px;
-            border-radius: 4px;
-            display: inline-block;
-            font-size: 14px;
-          ">下载截图</a>`
-                  : ""
-          }
-        </div>
-        <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 15px 0;">
-          <p style="margin: 0 0 10px 0; font-weight: bold; color: #333;">方法2：拖拽上传</p>
-          <p style="margin: 0 0 10px 0; color: #666; font-size: 14px;">
-            将截图文件直接拖拽到 ${platformName} 的聊天输入框中
-          </p>
-        </div>
-        <div style="text-align: center; margin-top: 20px;">
-          <button id="close-prompt" style="
+
+        const container = document.createElement("div");
+        container.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border: 1px solid #ddd;
+            padding: 30px;
+            border-radius: 12px;
+            z-index: 10000;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            max-width: 400px;
+            font-family: Arial, sans-serif;
+        `;
+
+        const title = document.createElement("h3");
+        title.style.cssText =
+            "margin: 0 0 15px 0; color: #333; text-align: center;";
+        title.textContent = "📸 手动上传到 " + platformName;
+
+        const description = document.createElement("p");
+        description.style.cssText =
+            "margin: 0 0 20px 0; color: #666; line-height: 1.5;";
+        description.textContent =
+            "自动上传功能可能不兼容当前页面版本。请使用以下方式上传截图：";
+
+        const method1Container = document.createElement("div");
+        method1Container.style.cssText =
+            "background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 15px 0;";
+
+        const method1Title = document.createElement("p");
+        method1Title.style.cssText =
+            "margin: 0 0 10px 0; font-weight: bold; color: #333;";
+        method1Title.textContent = "方法1：下载后上传";
+
+        const method1Description = document.createElement("p");
+        method1Description.style.cssText =
+            "margin: 0 0 10px 0; color: #666; font-size: 14px;";
+        method1Description.textContent =
+            "点击下载按钮保存截图，然后手动上传到聊天框";
+
+        if (file) {
+            const downloadLink = document.createElement("a");
+            downloadLink.id = "download-screenshot";
+            downloadLink.href = URL.createObjectURL(file);
+            downloadLink.download = "screenshot.png";
+            downloadLink.style.cssText = `
+                background: #007bff;
+                color: white;
+                text-decoration: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                display: inline-block;
+                font-size: 14px;
+            `;
+            downloadLink.textContent = "下载截图";
+            method1Container.appendChild(downloadLink);
+        }
+
+        const method2Container = document.createElement("div");
+        method2Container.style.cssText =
+            "background: #f8f9fa; padding: 15px; border-radius: 6px; margin: 15px 0;";
+
+        const method2Title = document.createElement("p");
+        method2Title.style.cssText =
+            "margin: 0 0 10px 0; font-weight: bold; color: #333;";
+        method2Title.textContent = "方法2：拖拽上传";
+
+        const method2Description = document.createElement("p");
+        method2Description.style.cssText =
+            "margin: 0 0 10px 0; color: #666; font-size: 14px;";
+        method2Description.textContent = `将截图文件直接拖拽到 ${platformName} 的聊天输入框中`;
+
+        const buttonContainer = document.createElement("div");
+        buttonContainer.style.cssText = "text-align: center; margin-top: 20px;";
+
+        const closeButton = document.createElement("button");
+        closeButton.id = "close-prompt";
+        closeButton.style.cssText = `
             background: #6c757d;
             color: white;
             border: none;
             padding: 10px 20px;
             border-radius: 4px;
             cursor: pointer;
-          ">关闭</button>
-        </div>
-      </div>
-    `;
+        `;
+        closeButton.textContent = "关闭";
 
+        method1Container.appendChild(method1Title);
+        method1Container.appendChild(method1Description);
+        method2Container.appendChild(method2Title);
+        method2Container.appendChild(method2Description);
+        buttonContainer.appendChild(closeButton);
+
+        container.appendChild(title);
+        container.appendChild(description);
+        container.appendChild(method1Container);
+        container.appendChild(method2Container);
+        container.appendChild(buttonContainer);
+        prompt.appendChild(container);
         document.body.appendChild(prompt);
 
         // 添加关闭按钮事件
-        document
-            .getElementById("close-prompt")
-            .addEventListener("click", () => {
-                prompt.remove();
-                // 清除存储的截图数据
-                chrome.storage.local.remove([
-                    "screenshot",
-                    "timestamp",
-                    "selectedAI",
-                ]);
-            });
+        closeButton.addEventListener("click", () => {
+            prompt.remove();
+            // 清除存储的截图数据
+            chrome.storage.local.remove([
+                "screenshot",
+                "timestamp",
+                "selectedAI",
+            ]);
+        });
     }
 })();

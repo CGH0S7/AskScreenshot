@@ -44,30 +44,46 @@
     function createInstructions() {
         instructions = document.createElement("div");
         instructions.id = "ask-screenshot-instructions";
-        instructions.innerHTML = `
-      <div style="
-        position: fixed;
-        top: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 15px 25px;
-        border-radius: 25px;
-        z-index: 999999;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-        text-align: center;
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255,255,255,0.2);
-      ">
-        <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-          <span style="font-size: 20px;">📸</span>
-          <div>
-            <div style="font-weight: bold; margin-bottom: 4px;">Ask Screenshot 截图选择</div>
-            <div style="font-size: 12px; opacity: 0.9;">拖拽选择截图区域，或点击取消</div>
-          </div>
-          <button id="cancel-screenshot" style="
+
+        const container = document.createElement("div");
+        container.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 25px;
+            z-index: 999999;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        `;
+
+        const flexContainer = document.createElement("div");
+        flexContainer.style.cssText =
+            "display: flex; align-items: center; justify-content: center; gap: 10px;";
+
+        const emojiSpan = document.createElement("span");
+        emojiSpan.style.fontSize = "20px";
+        emojiSpan.textContent = "📸";
+
+        const textContainer = document.createElement("div");
+
+        const title = document.createElement("div");
+        title.style.cssText = "font-weight: bold; margin-bottom: 4px;";
+        title.textContent = "Ask Screenshot 截图选择";
+
+        const subtitle = document.createElement("div");
+        subtitle.style.cssText = "font-size: 12px; opacity: 0.9;";
+        subtitle.textContent = "拖拽选择截图区域，或点击取消";
+
+        const cancelBtn = document.createElement("button");
+        cancelBtn.id = "cancel-screenshot";
+        cancelBtn.style.cssText = `
             background: rgba(255, 255, 255, 0.2);
             color: white;
             border: 1px solid rgba(255, 255, 255, 0.3);
@@ -77,16 +93,20 @@
             font-size: 12px;
             margin-left: 10px;
             transition: all 0.2s;
-          ">取消</button>
-        </div>
-      </div>
-    `;
+        `;
+        cancelBtn.textContent = "取消";
+
+        textContainer.appendChild(title);
+        textContainer.appendChild(subtitle);
+        flexContainer.appendChild(emojiSpan);
+        flexContainer.appendChild(textContainer);
+        flexContainer.appendChild(cancelBtn);
+        container.appendChild(flexContainer);
+        instructions.appendChild(container);
         document.body.appendChild(instructions);
 
         // 取消按钮事件
-        document
-            .getElementById("cancel-screenshot")
-            .addEventListener("click", cancelSelection);
+        cancelBtn.addEventListener("click", cancelSelection);
     }
 
     // 创建选择框
@@ -192,31 +212,41 @@
 
     // 确认选择
     function confirmSelection(selection) {
-        // 创建确认对话框
         const confirmDialog = document.createElement("div");
-        confirmDialog.innerHTML = `
-      <div style="
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        background: white;
-        padding: 25px;
-        border-radius: 15px;
-        z-index: 1000000;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        text-align: center;
-        min-width: 300px;
-      ">
-        <h3 style="margin: 0 0 15px 0; color: #333; font-size: 18px;">
-          📸 确认截图区域
-        </h3>
-        <p style="margin: 0 0 20px 0; color: #666; font-size: 14px;">
-          将截取 ${selection.width}×${selection.height} 像素的区域
-        </p>
-        <div style="display: flex; gap: 10px; justify-content: center;">
-          <button id="confirm-capture" style="
+
+        const container = document.createElement("div");
+        container.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            z-index: 1000000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            text-align: center;
+            min-width: 300px;
+        `;
+
+        const title = document.createElement("h3");
+        title.style.cssText =
+            "margin: 0 0 15px 0; color: #333; font-size: 18px;";
+        title.textContent = "📸 确认截图区域";
+
+        const description = document.createElement("p");
+        description.style.cssText =
+            "margin: 0 0 20px 0; color: #666; font-size: 14px;";
+        description.textContent = `将截取 ${selection.width}×${selection.height} 像素的区域`;
+
+        const buttonContainer = document.createElement("div");
+        buttonContainer.style.cssText =
+            "display: flex; gap: 10px; justify-content: center;";
+
+        const confirmBtn = document.createElement("button");
+        confirmBtn.id = "confirm-capture";
+        confirmBtn.style.cssText = `
             background: #4CAF50;
             color: white;
             border: none;
@@ -225,8 +255,12 @@
             cursor: pointer;
             font-size: 14px;
             font-weight: bold;
-          ">确认截图</button>
-          <button id="reselect-area" style="
+        `;
+        confirmBtn.textContent = "确认截图";
+
+        const reselectBtn = document.createElement("button");
+        reselectBtn.id = "reselect-area";
+        reselectBtn.style.cssText = `
             background: #2196F3;
             color: white;
             border: none;
@@ -234,8 +268,12 @@
             border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
-          ">重新选择</button>
-          <button id="cancel-capture" style="
+        `;
+        reselectBtn.textContent = "重新选择";
+
+        const cancelBtn = document.createElement("button");
+        cancelBtn.id = "cancel-capture";
+        cancelBtn.style.cssText = `
             background: #f44336;
             color: white;
             border: none;
@@ -243,37 +281,36 @@
             border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
-          ">取消</button>
-        </div>
-      </div>
-    `;
+        `;
+        cancelBtn.textContent = "取消";
 
+        buttonContainer.appendChild(confirmBtn);
+        buttonContainer.appendChild(reselectBtn);
+        buttonContainer.appendChild(cancelBtn);
+
+        container.appendChild(title);
+        container.appendChild(description);
+        container.appendChild(buttonContainer);
+        confirmDialog.appendChild(container);
         document.body.appendChild(confirmDialog);
 
-        // 添加按钮事件
-        document
-            .getElementById("confirm-capture")
-            .addEventListener("click", () => {
-                // 立即移除确认对话框
-                confirmDialog.remove();
-                // 开始截图流程
-                captureSelectedArea(selection);
-            });
+        // 添加事件监听器
+        confirmBtn.addEventListener("click", () => {
+            hideUIElements();
+            confirmDialog.remove();
+            captureSelectedArea(selection);
+        });
 
-        document
-            .getElementById("reselect-area")
-            .addEventListener("click", () => {
-                confirmDialog.remove();
-                removeSelectionBox();
-                // 保持选择模式
-            });
+        reselectBtn.addEventListener("click", () => {
+            confirmDialog.remove();
+            removeSelectionBox();
+            createSelectionBox(0, 0);
+        });
 
-        document
-            .getElementById("cancel-capture")
-            .addEventListener("click", () => {
-                confirmDialog.remove();
-                cancelSelection();
-            });
+        cancelBtn.addEventListener("click", () => {
+            confirmDialog.remove();
+            cleanup();
+        });
     }
 
     // 截取选定区域
@@ -439,34 +476,33 @@
         };
 
         const messageEl = document.createElement("div");
-        messageEl.innerHTML = `
-      <div style="
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${colors[type]};
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        z-index: 1000001;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        animation: slideInRight 0.3s ease-out;
-      ">
-        ${message}
-      </div>
-    `;
+        const container = document.createElement("div");
+        container.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${colors[type]};
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            z-index: 1000001;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            animation: slideInRight 0.3s ease-out;
+        `;
+        container.textContent = message;
+        messageEl.appendChild(container);
 
         // 添加动画样式
         if (!document.querySelector("#ask-screenshot-message-styles")) {
             const styles = document.createElement("style");
             styles.id = "ask-screenshot-message-styles";
             styles.textContent = `
-        @keyframes slideInRight {
-          from { transform: translateX(100%); opacity: 0; }
-          to { transform: translateX(0); opacity: 1; }
-        }
-      `;
+                @keyframes slideInRight {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+            `;
             document.head.appendChild(styles);
         }
 

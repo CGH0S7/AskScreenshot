@@ -2,9 +2,9 @@
 
 🤖 一个便捷的浏览器插件，可以截图并自动上传到 AI 网站（Qwen/Deepseek）进行提问。
 
-本项目受到polywock的[ask-screenshot](https://github.com/polywock/ask-screenshot)启发，主要面向中国大陆用户。
+本项目受到polywock的[ask-screenshot](https://github.com/polywock/ask-screenshot)启发，主要面向中国大陆用户，更加完善的ChatGPT/Claude/Gemini相关插件前者已经提供。
 
-分发工作正在进行中...
+支持Firefox/Chrome/Edge浏览器，分发工作正在进行中...
 
 ## 🚀 功能特性
 
