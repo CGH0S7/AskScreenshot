@@ -22,21 +22,14 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
         });
 
         // 向当前页面注入截图选择工具
-        chrome.tabs.executeScript(
-            tab.id,
-            {
-                file: "screenshot-selector.js",
-            },
-            () => {
-                if (chrome.runtime.lastError) {
-                    console.error(
-                        "注入截图选择器失败:",
-                        chrome.runtime.lastError.message
-                    );
-                    return;
-                }
-            }
-        );
+        chrome.scripting.executeScript({
+            target: { tabId: tab.id },
+            files: ["screenshot-selector.js"],
+        }).then(() => {
+            console.log("截图选择器注入成功");
+        }).catch((error) => {
+            console.error("注入截图选择器失败:", error.message);
+        });
     }
 });
 
@@ -142,12 +135,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                                     );
 
                                     // 注入脚本来处理图片上传
-                                    chrome.tabs.executeScript(
-                                        window.tabs[0].id,
-                                        {
-                                            file: "ai-inject.js",
-                                        }
-                                    );
+                                    chrome.scripting.executeScript({
+                                        target: { tabId: window.tabs[0].id },
+                                        files: ["ai-inject.js"],
+                                    });
                                 }
                             });
                         }

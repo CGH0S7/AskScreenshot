@@ -1,5 +1,5 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "Ask Screenshot",
   "version": "1.5",
   "description": "右键截图并自动向大语言模型上传",
@@ -9,12 +9,19 @@
     "activeTab",
     "tabs",
     "storage",
+    "scripting"
+  ],
+
+  "action": {
+    "default_title": "Ask Screenshot"
+  },
+
+  "host_permissions": [
     "<all_urls>"
   ],
   
   "background": {
-    "scripts": ["background.js"],
-    "persistent": false
+    "service_worker": "background.js"
   },
   
   "content_scripts": [
@@ -26,8 +33,13 @@
   ],
   
   "web_accessible_resources": [
-    "screenshot-selector.js",
-    "ai-inject.js"
+    {
+      "resources": [
+        "screenshot-selector.js",
+        "ai-inject.js"
+      ],
+      "matches": ["<all_urls>"]
+    }
   ],
   
   "icons": {
