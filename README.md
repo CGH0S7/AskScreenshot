@@ -4,7 +4,7 @@
 
 本项目受到polywock的[ask-screenshot](https://github.com/polywock/ask-screenshot)启发，主要面向中国大陆用户，更加完善的ChatGPT/Claude/Gemini相关插件前者已经提供。
 
-支持Firefox/Chrome/Edge浏览器，分发工作正在进行中...
+下载地址：[Firefox](https://addons.mozilla.org/zh-CN/firefox/addon/ask-screenshot/?utm_source=addons.mozilla.org&utm_medium=referral&utm_content=search),[Edge](https://microsoftedge.microsoft.com/addons/detail/ask-screenshot/hmadoikgeiieojfhbdademigmgpefdem)，Chrome(待分发)
 
 ## 🚀 功能特性
 
