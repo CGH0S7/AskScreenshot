@@ -1,24 +1,48 @@
+const AI_MENU_CONFIG = {
+    askQwen: { key: "qwen", title: "Ask Qwen", url: "https://chat.qwen.ai" },
+    askDeepseek: {
+        key: "deepseek",
+        title: "Ask Deepseek",
+        url: "https://chat.deepseek.com",
+    },
+    askChatGPT: {
+        key: "chatgpt",
+        title: "Ask ChatGPT",
+        url: "https://chatgpt.com",
+    },
+    // askGemini: {
+        // key: "gemini",
+        // title: "Ask Gemini",
+        // url: "https://gemini.google.com/app",
+    // },
+    askKimi: {
+        key: "kimi",
+        title: "Ask Kimi",
+        url: "https://www.kimi.com",
+    },
+};
+
 // 创建右键菜单
 chrome.runtime.onInstalled.addListener(() => {
-    chrome.contextMenus.create({
-        id: "askQwen",
-        title: "Ask Qwen",
-        contexts: ["page", "selection", "image", "link"],
-    });
-
-    chrome.contextMenus.create({
-        id: "askDeepseek",
-        title: "Ask Deepseek",
-        contexts: ["page", "selection", "image", "link"],
+    chrome.contextMenus.removeAll(() => {
+        Object.entries(AI_MENU_CONFIG).forEach(([id, config]) => {
+            chrome.contextMenus.create({
+                id,
+                title: config.title,
+                contexts: ["page", "selection", "image", "link"],
+            });
+        });
     });
 });
 
 // 处理右键菜单点击事件
 chrome.contextMenus.onClicked.addListener((info, tab) => {
-    if (info.menuItemId === "askQwen" || info.menuItemId === "askDeepseek") {
+    if (AI_MENU_CONFIG[info.menuItemId]) {
+        const { key: aiKey } = AI_MENU_CONFIG[info.menuItemId];
+
         // 存储用户选择的AI平台
         chrome.storage.local.set({
-            selectedAI: info.menuItemId === "askQwen" ? "qwen" : "deepseek",
+            selectedAI: aiKey,
         });
 
         // 向当前页面注入截图选择工具
@@ -104,10 +128,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         // 获取用户选择的AI平台
         chrome.storage.local.get(["selectedAI"], (aiResult) => {
             const selectedAI = aiResult.selectedAI || "qwen";
-            const aiUrl =
-                selectedAI === "qwen"
-                    ? "https://chat.qwen.ai"
-                    : "https://chat.deepseek.com";
+            const aiEntry = Object.values(AI_MENU_CONFIG).find(
+                (item) => item.key === selectedAI
+            );
+            const aiUrl = aiEntry ? aiEntry.url : AI_MENU_CONFIG.askQwen.url;
 
             // 存储截图数据和AI平台信息
             chrome.storage.local.set(

@@ -2,6 +2,89 @@
 (function () {
     console.log("Ask Screenshot 插件已载入");
 
+    const AI_PLATFORM_INFO = {
+        qwen: { name: "Qwen" },
+        deepseek: { name: "Deepseek" },
+        chatgpt: { name: "ChatGPT" },
+        // gemini: { name: "Gemini" },
+        kimi: { name: "Kimi" },
+    };
+
+    const MAX_UPLOAD_ATTEMPTS = 8;
+    const UPLOAD_RETRY_DELAY_MS = 1000;
+
+    const BASE_UPLOAD_SELECTORS = {
+        inputs: [
+            'input[type="file"][accept*="image" i]',
+            'input[type="file"][accept*="png" i]',
+            'input[type="file"][accept*="jpg" i]',
+            'input[type="file"]',
+        ],
+        buttons: [
+            '[data-testid*="upload" i]',
+            '[data-testid*="attach" i]',
+            '[class*="upload" i]',
+            '[class*="attach" i]',
+            'button[title*="上传" i]',
+            'button[title*="upload" i]',
+            'button[aria-label*="上传" i]',
+            'button[aria-label*="upload" i]',
+            'label[aria-label*="上传" i]',
+            'label[aria-label*="upload" i]',
+        ],
+        dropzones: [
+            '[data-testid*="drop" i]',
+            '[class*="dropzone" i]',
+            '[aria-label*="drag" i]',
+            '[aria-label*="drop" i]',
+        ],
+    };
+
+    const PLATFORM_SELECTOR_OVERRIDES = {
+        // gemini: {
+        //     inputs: [
+        //         'input[type="file"][accept*="image/*" i]',
+        //         'input[type="file"][name*="file" i]',
+        //         'input[type="file"][aria-label*="image" i]',
+        //     ],
+        //     buttons: [
+        //         'button[aria-label*="add image" i]',
+        //         'button[aria-label*="add images" i]',
+        //         'button[aria-label*="add files" i]',
+        //         '[role="button"][aria-label*="add image" i]',
+        //         '[data-tooltip*="add image" i]',
+        //     ],
+        //     dropzones: [
+        //         '[aria-label*="drop image" i]',
+        //         '[aria-label*="drop files" i]',
+        //         '[data-testid*="dropzone" i]',
+        //     ],
+        // },
+        chatgpt: {
+            inputs: [
+                'label[aria-label*="Upload" i] input[type="file"]',
+            ],
+            buttons: [
+                'button[data-testid*="file-upload" i]',
+                '[data-testid*="upload-button" i]',
+            ],
+        },
+        kimi: {
+            inputs: ['[class*="kimi" i] input[type="file"]'],
+            buttons: ['button[aria-label*="上传" i]'],
+        },
+        qwen: {
+            buttons: ['[class*="qwen" i]'],
+        },
+        deepseek: {
+            buttons: ['[class*="deepseek" i]'],
+        },
+    };
+
+    function getPlatformName(platformKey) {
+        return AI_PLATFORM_INFO[platformKey]?.name || platformKey;
+    }
+
     // 等待一段时间确保页面元素已载入
     setTimeout(() => {
         initializeAIIntegration();
@@ -12,8 +95,7 @@
         chrome.storage.local.get(["screenshot", "selectedAI"], (response) => {
             if (response && response.screenshot) {
                 const aiPlatform = response.selectedAI || "qwen";
-                const platformName =
-                    aiPlatform === "qwen" ? "Qwen" : "Deepseek";
+                const platformName = getPlatformName(aiPlatform);
 
                 // 创建一个浮动的提示窗口
                 createFloatingNotification(platformName);
@@ -58,69 +140,284 @@
     }
 
     function uploadScreenshotToAI(screenshotDataUrl, aiPlatform) {
-        // 将dataUrl转换为File对象
-        fetch(screenshotDataUrl)
-            .then((res) => res.blob())
-            .then((blob) => {
-                const file = new File([blob], "screenshot.png", {
-                    type: "image/png",
-                });
-
-                // 尝试找到文件上传按钮或拖放区域
-                const uploadButton = findUploadButton(aiPlatform);
-                const chatInput = findChatInput(aiPlatform);
-
-                if (uploadButton) {
-                    // 模拟文件上传
-                    simulateFileUpload(uploadButton, file);
-                } else if (chatInput) {
-                    // 如果找不到上传按钮，创建一个临时的上传区域
-                    createTemporaryUploadArea(file, chatInput, aiPlatform);
-                } else {
-                    // 如果都找不到，显示手动上传提示
-                    showManualUploadPrompt(file, aiPlatform);
-                }
+        convertDataUrlToFile(screenshotDataUrl, "screenshot.png")
+            .then((file) => {
+                attemptUploadToPlatform(file, screenshotDataUrl, aiPlatform, 1);
             })
             .catch((err) => {
                 console.error("处理截图失败:", err);
-                // showManualUploadPrompt(null, aiPlatform);
+                markScreenshotConsumed();
+                showManualUploadPrompt(null, aiPlatform, screenshotDataUrl);
             });
     }
 
-    function findUploadButton(aiPlatform) {
-        // 寻找可能的上传按钮，根据不同平台使用不同选择器
-        let selectors = [
-            'input[type="file"]',
-            '[data-testid*="upload"]',
-            '[class*="upload"]',
-            '[class*="attach"]',
-            'button[title*="上传"]',
-            'button[title*="upload"]',
-        ];
+    function convertDataUrlToFile(dataUrl, filename) {
+        return fetch(dataUrl)
+            .then((res) => res.blob())
+            .then(
+                (blob) =>
+                    new File([blob], filename, {
+                        type: blob.type || "image/png",
+                    })
+            );
+    }
 
-        // 根据平台添加特定选择器
-        if (aiPlatform === "qwen") {
-            selectors = selectors.concat([
-                '[class*="qwen"]',
-                '[data-testid*="qwen"]',
-            ]);
-        } else if (aiPlatform === "deepseek") {
-            selectors = selectors.concat([
-                '[class*="deepseek"]',
-                '[data-testid*="deepseek"]',
-            ]);
+    function attemptUploadToPlatform(file, dataUrl, aiPlatform, attempt) {
+        const selectors = buildSelectorConfig(aiPlatform);
+        const uploadTarget =
+            pickFirstMatch(selectors.inputs, isFileInput) ||
+            pickFirstMatch(selectors.buttons);
+
+        if (uploadTarget && assignFileToTarget(uploadTarget, file)) {
+            markScreenshotConsumed();
+            return;
         }
 
+        const dropTarget =
+            pickFirstMatch(selectors.dropzones, isElementUsable) ||
+            (uploadTarget && !isFileInput(uploadTarget)
+                ? uploadTarget
+                : null) ||
+            findChatInput(aiPlatform);
+
+        if (dropTarget && simulateFileDrop(dropTarget, file)) {
+            markScreenshotConsumed();
+            return;
+        }
+
+        if (attempt < MAX_UPLOAD_ATTEMPTS) {
+            setTimeout(() => {
+                attemptUploadToPlatform(
+                    file,
+                    dataUrl,
+                    aiPlatform,
+                    attempt + 1
+                );
+            }, UPLOAD_RETRY_DELAY_MS);
+            return;
+        }
+
+        console.warn(
+            `未能找到 ${aiPlatform} 的自动上传入口，展示手动上传提示。`
+        );
+        markScreenshotConsumed();
+        showManualUploadPrompt(file, aiPlatform, dataUrl);
+    }
+
+    function buildSelectorConfig(aiPlatform) {
+        const overrides = PLATFORM_SELECTOR_OVERRIDES[aiPlatform] || {};
+
+        return {
+            inputs: dedupeSelectors([
+                ...BASE_UPLOAD_SELECTORS.inputs,
+                ...(overrides.inputs || []),
+            ]),
+            buttons: dedupeSelectors([
+                ...BASE_UPLOAD_SELECTORS.buttons,
+                ...(overrides.buttons || []),
+            ]),
+            dropzones: dedupeSelectors([
+                ...BASE_UPLOAD_SELECTORS.dropzones,
+                ...(overrides.dropzones || []),
+            ]),
+        };
+    }
+
+    function dedupeSelectors(selectors) {
+        return [...new Set(selectors.filter(Boolean))];
+    }
+
+    function pickFirstMatch(selectors, predicate = () => true) {
         for (const selector of selectors) {
-            const element = document.querySelector(selector);
-            if (element) return element;
+            const matches = querySelectorDeep(selector);
+            const candidate = matches.find(
+                (el) => !isExtensionElement(el) && predicate(el)
+            );
+            if (candidate) {
+                return candidate;
+            }
         }
         return null;
     }
 
+    function querySelectorDeep(selector) {
+        const results = [];
+        const collected = new Set();
+        const visited = new Set();
+        const queue = [document];
+
+        while (queue.length) {
+            const root = queue.shift();
+            if (!root || visited.has(root)) continue;
+            visited.add(root);
+
+            if (typeof root.querySelectorAll === "function") {
+                const matches = root.querySelectorAll(selector);
+                matches.forEach((el) => {
+                    if (!collected.has(el)) {
+                        collected.add(el);
+                        results.push(el);
+                    }
+                });
+
+                const descendants = root.querySelectorAll("*");
+                descendants.forEach((element) => {
+                    if (element.shadowRoot && !visited.has(element.shadowRoot)) {
+                        queue.push(element.shadowRoot);
+                    }
+                    if (element instanceof HTMLIFrameElement) {
+                        try {
+                            const doc =
+                                element.contentDocument ||
+                                element.contentWindow?.document;
+                            if (doc && !visited.has(doc)) {
+                                queue.push(doc);
+                            }
+                        } catch (err) {
+                            // ignore cross-origin frames
+                        }
+                    }
+                });
+            }
+        }
+
+        return results;
+    }
+
+    function isExtensionElement(el) {
+        return el?.id?.startsWith("ask-");
+    }
+
+    function isFileInput(element) {
+        return (
+            element?.tagName === "INPUT" &&
+            element.getAttribute("type") === "file"
+        );
+    }
+
+    function isElementUsable(element) {
+        if (!element) return false;
+        if (isFileInput(element)) return true;
+        return isElementVisible(element);
+    }
+
+    function resolveFileInput(element) {
+        if (!element) return null;
+        if (isFileInput(element)) return element;
+
+        const controlId = element.getAttribute?.("for");
+        if (controlId) {
+            const associated = document.getElementById(controlId);
+            if (isFileInput(associated)) return associated;
+        }
+
+        if (element.querySelector) {
+            const nested = element.querySelector('input[type="file"]');
+            if (isFileInput(nested)) return nested;
+        }
+
+        if (element.shadowRoot) {
+            const shadowNested = element.shadowRoot.querySelector(
+                'input[type="file"]'
+            );
+            if (isFileInput(shadowNested)) return shadowNested;
+        }
+
+        let parent = element.parentElement;
+        while (parent) {
+            if (parent.querySelector) {
+                const nested = parent.querySelector('input[type="file"]');
+                if (isFileInput(nested)) return nested;
+            }
+            if (parent.shadowRoot) {
+                const shadowNested = parent.shadowRoot.querySelector(
+                    'input[type="file"]'
+                );
+                if (isFileInput(shadowNested)) return shadowNested;
+            }
+            parent = parent.parentElement;
+        }
+
+        return null;
+    }
+
+    function buildFileList(file) {
+        if (typeof DataTransfer !== "undefined") {
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            return dt.files;
+        }
+        return null;
+    }
+
+    function assignFileToTarget(target, file) {
+        try {
+            const fileInput = resolveFileInput(target);
+            if (!fileInput) return false;
+
+            const fileList = buildFileList(file);
+            if (!fileList) return false;
+
+            fileInput.files = fileList;
+            fileInput.dispatchEvent(new Event("input", { bubbles: true }));
+            fileInput.dispatchEvent(new Event("change", { bubbles: true }));
+            return true;
+        } catch (err) {
+            console.error("写入文件到输入框失败:", err);
+            return false;
+        }
+    }
+
+    function createDataTransfer(file) {
+        if (typeof DataTransfer === "undefined") return null;
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        return dt;
+    }
+
+    function simulateFileDrop(element, file) {
+        if (!element) return false;
+        try {
+            const dragEnterDt = createDataTransfer(file);
+            const dragOverDt = createDataTransfer(file);
+            const dropDt = createDataTransfer(file);
+
+            if (!dragEnterDt || !dragOverDt || !dropDt) return false;
+
+            element.dispatchEvent(
+                new DragEvent("dragenter", {
+                    bubbles: true,
+                    cancelable: true,
+                    dataTransfer: dragEnterDt,
+                })
+            );
+            element.dispatchEvent(
+                new DragEvent("dragover", {
+                    bubbles: true,
+                    cancelable: true,
+                    dataTransfer: dragOverDt,
+                })
+            );
+            element.dispatchEvent(
+                new DragEvent("drop", {
+                    bubbles: true,
+                    cancelable: true,
+                    dataTransfer: dropDt,
+                })
+            );
+            return true;
+        } catch (err) {
+            console.error("模拟拖放上传失败:", err);
+            return false;
+        }
+    }
+
+    function markScreenshotConsumed() {
+        chrome.storage.local.remove(["screenshot", "timestamp"]);
+    }
+
     function findChatInput(aiPlatform) {
-        // 寻找聊天输入框
-        const selectors = [
+        const baseSelectors = [
             "textarea",
             'input[type="text"]',
             '[contenteditable="true"]',
@@ -129,115 +426,39 @@
             '[role="textbox"]',
         ];
 
-        for (const selector of selectors) {
-            const element = document.querySelector(selector);
-            if (element && element.offsetHeight > 0) return element;
+        const platformSpecific = {
+            // gemini: [
+            //     'textarea[aria-label*="gemini" i]',
+            //     '[aria-label*="message gemini" i]',
+            //     '[aria-label*="prompt" i][contenteditable="true"]',
+            // ],
+            chatgpt: ['textarea[data-id]', '[data-id][contenteditable="true"]'],
+        };
+
+        const selectors = baseSelectors.concat(
+            platformSpecific[aiPlatform] || []
+        );
+
+        return pickFirstMatch(selectors, isElementVisible);
+    }
+
+    function isElementVisible(element) {
+        if (!element) return false;
+        if (element.offsetWidth > 0 && element.offsetHeight > 0) return true;
+        if (typeof element.getClientRects === "function") {
+            const rects = element.getClientRects();
+            if (rects && rects.length > 0) return true;
         }
-        return null;
+        const style = window.getComputedStyle(element);
+        return (
+            style.display !== "none" &&
+            style.visibility !== "hidden" &&
+            style.opacity !== "0"
+        );
     }
 
-    function simulateFileUpload(uploadElement, file) {
-        // 创建一个DataTransfer对象来模拟文件上传
-        const dt = new DataTransfer();
-        dt.items.add(file);
-
-        if (uploadElement.tagName === "INPUT") {
-            uploadElement.files = dt.files;
-            uploadElement.dispatchEvent(new Event("change", { bubbles: true }));
-        } else {
-            // 模拟拖放事件
-            const dropEvent = new DragEvent("drop", {
-                bubbles: true,
-                dataTransfer: dt,
-            });
-            uploadElement.dispatchEvent(dropEvent);
-        }
-    }
-
-    function createTemporaryUploadArea(file, nearElement, aiPlatform) {
-        const platformName = aiPlatform === "qwen" ? "Qwen" : "Deepseek";
-        const uploadArea = document.createElement("div");
-
-        const container = document.createElement("div");
-        container.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: white;
-            border: 2px dashed #ccc;
-            padding: 20px;
-            border-radius: 8px;
-            z-index: 10000;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            max-width: 300px;
-        `;
-
-        const title = document.createElement("h3");
-        title.style.cssText = "margin: 0 0 10px 0; color: #333;";
-        title.textContent = "Ask Screenshot 截图";
-
-        const description = document.createElement("p");
-        description.style.cssText =
-            "margin: 0 0 10px 0; color: #666; font-size: 14px;";
-        description.textContent = `点击下方按钮上传截图到 ${platformName} 对话中`;
-
-        const uploadBtn = document.createElement("button");
-        uploadBtn.id = "ai-upload-btn";
-        uploadBtn.style.cssText = `
-            background: #4CAF50;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-right: 10px;
-        `;
-        uploadBtn.textContent = "上传截图";
-
-        const cancelBtn = document.createElement("button");
-        cancelBtn.id = "ai-cancel-btn";
-        cancelBtn.style.cssText = `
-            background: #f44336;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 4px;
-            cursor: pointer;
-        `;
-        cancelBtn.textContent = "取消";
-
-        container.appendChild(title);
-        container.appendChild(description);
-        container.appendChild(uploadBtn);
-        container.appendChild(cancelBtn);
-        uploadArea.appendChild(container);
-        document.body.appendChild(uploadArea);
-
-        // 添加事件监听器
-        uploadBtn.addEventListener("click", () => {
-            // 创建一个隐藏的文件输入框
-            const hiddenInput = document.createElement("input");
-            hiddenInput.type = "file";
-            hiddenInput.style.display = "none";
-
-            // 模拟文件选择
-            const dt = new DataTransfer();
-            dt.items.add(file);
-            hiddenInput.files = dt.files;
-
-            document.body.appendChild(hiddenInput);
-            hiddenInput.click();
-
-            uploadArea.remove();
-        });
-
-        cancelBtn.addEventListener("click", () => {
-            uploadArea.remove();
-        });
-    }
-
-    function showManualUploadPrompt(file, aiPlatform) {
-        const platformName = aiPlatform === "qwen" ? "Qwen" : "Deepseek";
+    function showManualUploadPrompt(file, aiPlatform, dataUrl) {
+        const platformName = getPlatformName(aiPlatform);
         const prompt = document.createElement("div");
 
         const container = document.createElement("div");
@@ -282,12 +503,9 @@
         method1Description.textContent =
             "点击下载按钮保存截图，然后手动上传到聊天框";
 
-        if (file) {
-            const downloadLink = document.createElement("a");
-            downloadLink.id = "download-screenshot";
-            downloadLink.href = URL.createObjectURL(file);
-            downloadLink.download = "screenshot.png";
-            downloadLink.style.cssText = `
+        const downloadLink = document.createElement("a");
+        downloadLink.id = "download-screenshot";
+        downloadLink.style.cssText = `
                 background: #007bff;
                 color: white;
                 text-decoration: none;
@@ -296,9 +514,25 @@
                 display: inline-block;
                 font-size: 14px;
             `;
+
+        let objectUrl = null;
+        if (file) {
+            objectUrl = URL.createObjectURL(file);
+            downloadLink.href = objectUrl;
+            downloadLink.download = file.name || "screenshot.png";
             downloadLink.textContent = "下载截图";
-            method1Container.appendChild(downloadLink);
+        } else if (dataUrl) {
+            downloadLink.href = dataUrl;
+            downloadLink.download = "screenshot.png";
+            downloadLink.textContent = "下载截图";
+        } else {
+            downloadLink.href = "#";
+            downloadLink.setAttribute("aria-disabled", "true");
+            downloadLink.style.opacity = "0.6";
+            downloadLink.style.pointerEvents = "none";
+            downloadLink.textContent = "无法提供截图下载";
         }
+        method1Container.appendChild(downloadLink);
 
         const method2Container = document.createElement("div");
         method2Container.style.cssText =
@@ -345,6 +579,9 @@
 
         // 添加关闭按钮事件
         closeButton.addEventListener("click", () => {
+            if (objectUrl) {
+                URL.revokeObjectURL(objectUrl);
+            }
             prompt.remove();
             // 清除存储的截图数据
             chrome.storage.local.remove([

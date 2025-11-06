@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Ask Screenshot",
-  "version": "1.5",
+  "version": "1.6",
   "description": "右键截图并自动向大语言模型上传",
   
   "permissions": [

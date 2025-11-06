@@ -44,3 +44,7 @@
 
 ![选项展示](demo/demo1.png)
 ![提问展示](demo/demo2.png)
+
+## 📣 更新内容
+
+2025.11.6 添加ChatGPT, Kimi支持

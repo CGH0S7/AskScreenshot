@@ -10,12 +10,32 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 // 检查当前页面是否为支持的AI平台
-const supportedPlatforms = {
-    "chat.qwen.ai": "qwen",
-    "chat.deepseek.com": "deepseek",
+const PLATFORM_INFO = {
+    qwen: { name: "Qwen", hostnames: ["chat.qwen.ai"] },
+    deepseek: { name: "Deepseek", hostnames: ["chat.deepseek.com"] },
+    chatgpt: {
+        name: "ChatGPT",
+        hostnames: ["chatgpt.com", "www.chatgpt.com"],
+    },
+    // gemini: { name: "Gemini", hostnames: ["gemini.google.com"] },
+    kimi: {
+        name: "Kimi",
+        hostnames: ["www.kimi.com", "kimi.moonshot.cn"],
+    },
 };
 
-const currentPlatform = supportedPlatforms[window.location.hostname];
+const hostnamePlatformMap = {};
+Object.entries(PLATFORM_INFO).forEach(([platformKey, info]) => {
+    info.hostnames.forEach((hostname) => {
+        hostnamePlatformMap[hostname] = platformKey;
+    });
+});
+
+const currentPlatform = hostnamePlatformMap[window.location.hostname];
+
+function getPlatformName(platformKey) {
+    return PLATFORM_INFO[platformKey]?.name || platformKey;
+}
 
 if (currentPlatform) {
     // 监听页面加载完成
@@ -29,12 +49,9 @@ if (currentPlatform) {
 }
 
 function handleAIPage(platform) {
-    const platformNames = {
-        qwen: "Qwen",
-        deepseek: "Deepseek",
-    };
+    const platformName = getPlatformName(platform);
 
-    console.log(`在 ${platformNames[platform]} 页面中`);
+    console.log(`在 ${platformName} 页面中`);
 
     // 检查是否有等待处理的截图
     chrome.storage.local.get(
@@ -68,10 +85,7 @@ function handleAIPage(platform) {
 }
 
 function processScreenshotForAI(screenshotDataUrl, platform) {
-    const platformNames = {
-        qwen: "Qwen",
-        deepseek: "Deepseek",
-    };
+    const platformName = getPlatformName(platform);
 
     // 创建提示用户的浮动元素
     const notification = document.createElement("div");
@@ -107,7 +121,7 @@ function processScreenshotForAI(screenshotDataUrl, platform) {
     const description = document.createElement("p");
     description.style.cssText =
         "margin: 0 0 12px 0; font-size: 14px; line-height: 1.4;";
-    description.textContent = `截图已准备就绪！将上传到 ${platformNames[platform]}，你可以：`;
+    description.textContent = `截图已准备就绪！将上传到 ${platformName}，你可以：`;
 
     const buttonContainer = document.createElement("div");
     buttonContainer.style.cssText = "display: flex; gap: 8px;";
@@ -199,6 +213,10 @@ function attemptAutoUpload(screenshotDataUrl, platform) {
                 ...document.querySelectorAll('[data-testid*="upload"]'),
                 ...document.querySelectorAll('[class*="upload" i]'),
                 ...document.querySelectorAll('[class*="attach" i]'),
+                ...document.querySelectorAll('button[title*="upload" i]'),
+                ...document.querySelectorAll('button[title*="上传" i]'),
+                ...document.querySelectorAll('button[aria-label*="upload" i]'),
+                ...document.querySelectorAll('button[aria-label*="上传" i]'),
             ];
 
             // 根据平台添加特定选择器
@@ -209,6 +227,24 @@ function attemptAutoUpload(screenshotDataUrl, platform) {
             } else if (platform === "deepseek") {
                 uploadElements = uploadElements.concat([
                     ...document.querySelectorAll('[class*="deepseek" i]'),
+                ]);
+            } else if (platform === "chatgpt") {
+                uploadElements = uploadElements.concat([
+                    ...document.querySelectorAll('[data-testid*="file-upload" i]'),
+                    ...document.querySelectorAll('[data-testid*="upload-button" i]'),
+                    ...document.querySelectorAll('label[aria-label*="Upload" i] input[type="file"]'),
+                ]);
+            // } else if (platform === "gemini") {
+                // uploadElements = uploadElements.concat([
+                    // ...document.querySelectorAll('button[aria-label*="Add image" i]'),
+                    // ...document.querySelectorAll('button[aria-label*="Add files" i]'),
+                    // ...document.querySelectorAll('label[aria-label*="Add" i] input[type="file"]'),
+                // ]);
+            } else if (platform === "kimi") {
+                uploadElements = uploadElements.concat([
+                    ...document.querySelectorAll('[data-testid*="kimi" i]'),
+                    ...document.querySelectorAll('button[aria-label*="上传" i]'),
+                    ...document.querySelectorAll('[class*="kimi" i] input[type="file"]'),
                 ]);
             }
 
@@ -256,10 +292,7 @@ function simulateFileDrop(element, file) {
 }
 
 function showManualUploadHelper(screenshotDataUrl, platform) {
-    const platformNames = {
-        qwen: "Qwen",
-        deepseek: "Deepseek",
-    };
+    const platformName = getPlatformName(platform);
 
     // 创建一个下载链接让用户手动下载截图
     const helper = document.createElement("div");
@@ -281,7 +314,7 @@ function showManualUploadHelper(screenshotDataUrl, platform) {
 
     const title = document.createElement("h3");
     title.style.cssText = "margin: 0 0 12px 0; color: #333; font-size: 16px;";
-    title.textContent = `📸 手动上传截图到 ${platformNames[platform]}`;
+    title.textContent = `📸 手动上传截图到 ${platformName}`;
 
     const description = document.createElement("p");
     description.style.cssText =
